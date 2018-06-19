@@ -70,7 +70,7 @@ open class KaptWithKotlincTask : KaptTask(), CompilerArgumentAwareWithInput<K2JV
         val compilerRunner = GradleCompilerRunner(project)
         val exitCode = compilerRunner.runJvmCompiler(
             sourcesToCompile = emptyList(),
-            javaSourceRoots = javaSourceRoots,
+            javaSourceRoots = javaSourceRoots.filter { it.exists() },
             javaPackagePrefix = kotlinCompileTask.javaPackagePrefix,
             args = args,
             environment = environment
