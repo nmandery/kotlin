@@ -13,9 +13,11 @@ import org.jetbrains.kotlin.descriptors.annotations.Annotations
 import org.jetbrains.kotlin.metadata.ProtoBuf
 import org.jetbrains.kotlin.metadata.deserialization.*
 import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameOrNull
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedAnnotationsWithPossibleTargets
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedTypeParameterDescriptor
 import org.jetbrains.kotlin.types.*
+import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 import java.util.*
 
 class TypeDeserializer(
@@ -135,8 +137,14 @@ class TypeDeserializer(
         val result = when (functionTypeConstructor.parameters.size - arguments.size) {
             0 -> {
                 val functionType = KotlinTypeFactory.simpleType(annotations, functionTypeConstructor, arguments, nullable)
+
+                val expectReleaseCoroutines =
+                    isReleaseCoroutines &&
+                            // kotlin.suspend is still built with LV=1.2, thus it references old Continuation
+                            c.containingDeclaration.safeAs<CallableDescriptor>()?.fqNameOrNull() != KOTLIN_SUSPEND_BUILT_IN_FUNCTION_FQ_NAME
+
                 functionType.takeIf { it.isFunctionType }
-                    ?.let { funType -> transformRuntimeFunctionTypeToSuspendFunction(funType, isReleaseCoroutines) }
+                    ?.let { funType -> transformRuntimeFunctionTypeToSuspendFunction(funType, expectReleaseCoroutines) }
             }
             // This case for types written by eap compiler 1.1
             1 -> {
